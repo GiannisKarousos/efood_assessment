@@ -1,0 +1,58 @@
+-- dataset preview .head(10)
+SELECT *
+FROM `efood2023-remote.main_assessment.orders`
+limit 10
+
+-- some stats
+SELECT 
+  COUNT(*) as total_orders, COUNT(DISTINCT user_id) as unique_users,
+  AVG(amount) as avg_order_value, SUM(case when paid_cash THEN 1 ELSE 0 END) as total_cash_payments,
+  SUM(case when order_contains_offer THEN 1 ELSE 0 END) as total_orders_with_offers
+FROM `efood2023-remote.main_assessment.orders`;
+
+-- User's classes
+SELECT 
+  user_class_name, COUNT(*) as total_orders, AVG(amount) as avg_order_value
+FROM `efood2023-remote.main_assessment.orders`
+GROUP BY user_class_name;
+
+-- breakfast orders
+SELECT 
+  user_id, COUNT(*) as breakfast_orders, AVG(amount) as avg_breakfast_order_value
+FROM `efood2023-remote.main_assessment.orders`
+WHERE cuisine = 'Breakfast'
+GROUP BY user_id
+ORDER BY breakfast_orders DESC;
+
+-- total coupons to use (1000)
+-- COUPON STRATEGY A: High Frequency & Opportunity to Increase Spend (263 users)
+SELECT 
+  user_id, user_class_name, COUNT(*) as breakfast_orders, AVG(amount) as avg_breakfast_order_value
+FROM `efood2023-remote.main_assessment.orders`
+WHERE cuisine = 'Breakfast'
+GROUP BY user_id, user_class_name
+HAVING avg_breakfast_order_value < 5
+AND breakfast_orders >= 50
+ORDER BY breakfast_orders DESC, avg_breakfast_order_value DESC;
+
+-- total coupons to use (1000)
+-- COUPON STRATEGY A: High Frequency & Opportunity to Increase. Spend Users who order frequently but spend less might be encouraged to try more premium items with the right incentive. (263 users)
+SELECT 
+  user_id, user_class_name, COUNT(*) as breakfast_orders, AVG(amount) as avg_breakfast_order_value
+FROM `efood2023-remote.main_assessment.orders`
+WHERE cuisine = 'Breakfast'
+GROUP BY user_id, user_class_name
+HAVING avg_breakfast_order_value < 5
+AND breakfast_orders >= 50
+ORDER BY breakfast_orders DESC, avg_breakfast_order_value DESC;
+
+-- COUPON STRATEGY B: users who used to order breakfast frequently but haven't placed an order in a while.
+SELECT 
+  user_id, MAX(order_timestamp) as last_order_time, COUNT(*) as breakfast_orders
+FROM `efood2023-remote.main_assessment.orders`
+WHERE cuisine = 'Breakfast'
+GROUP BY user_id
+HAVING breakfast_orders >= 30
+AND TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), MAX(order_timestamp), DAY) > 30
+ORDER BY breakfast_orders DESC;
+
